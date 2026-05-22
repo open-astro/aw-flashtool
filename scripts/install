@@ -66,13 +66,12 @@ echo "========================================"
 echo ""
 echo "This script will:"
 echo "  1. Connect to your iMate via SSH"
-echo "  2. Back up the stock rootfs for future restore"
-echo "  3. Preserve the stock kernel and firmware"
-echo "  4. Replace the OS with Debian 13 (Trixie)"
-echo "  5. Reboot into OpenAstro Linux"
+echo "  2. Preserve the stock kernel and firmware"
+echo "  3. Replace the OS with Debian 13 (Trixie)"
+echo "  4. Reboot into OpenAstro Linux"
 echo ""
 echo "The stock boot chain is never modified."
-echo "To restore stock firmware, run ./scripts/restore"
+echo "To restore stock firmware, use iOptron's SD card recovery image."
 echo ""
 
 # --- Preflight ---
@@ -205,7 +204,7 @@ prompt_continue "Ready to install OpenAstro Linux?"
 
 echo ""
 echo "========================================"
-echo "  Step 1/5 — Prepare Device"
+echo "  Step 1/4 — Prepare Device"
 echo "========================================"
 echo ""
 
@@ -218,7 +217,7 @@ ssh_run_sudo "echo '$STOCK_USER ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/$STOCK_
 echo "  Done."
 
 echo "Cleaning up previous run..."
-ssh_run "sudo rm -f /tmp/stock-rootfs.tar.gz /tmp/stock-preserve.tar.gz 2>/dev/null || true" || true
+ssh_run "sudo rm -f /tmp/stock-preserve.tar.gz 2>/dev/null || true" || true
 echo "  Done."
 
 echo "Stopping non-essential services..."
@@ -226,61 +225,12 @@ ssh_run "sudo systemctl stop hostapd dnsmasq lightdm nxserver cups bluetooth chr
 echo "  Done."
 
 # ============================================================
-# Step 2: Back up stock rootfs
+# Step 2: Preserve stock files
 # ============================================================
 
 echo ""
 echo "========================================"
-echo "  Step 2/5 — Back Up Stock Rootfs"
-echo "========================================"
-echo ""
-
-STOCK_BACKUP="$IMAGES_DIR/imate-stock-rootfs.tar.gz"
-
-DO_BACKUP=true
-
-if [ -f "$STOCK_BACKUP" ]; then
-    EXISTING_SIZE=$(du -h "$STOCK_BACKUP" | cut -f1)
-    echo "Stock backup already exists: $(basename "$STOCK_BACKUP") ($EXISTING_SIZE)"
-    echo ""
-    read -rp "Replace existing backup? [y/N] " answer
-    case "$answer" in
-        [yY]*) echo "  Replacing backup..." ; rm -f "$STOCK_BACKUP" ;;
-        *)     echo "  Keeping existing backup." ; DO_BACKUP=false ;;
-    esac
-fi
-
-if [ "$DO_BACKUP" = true ]; then
-    echo "Backing up stock rootfs..."
-    echo ""
-
-    # Get used disk space for progress estimate
-    USED_BYTES=$(ssh_run "df -B1 / | tail -1 | awk '{print \$3}'")
-
-    mkdir -p "$IMAGES_DIR"
-
-    # Stream tar over SSH, compress locally — pv shows progress the whole time
-    echo "  Streaming and compressing (this may take a few minutes)..."
-    sshpass -p "$STOCK_PASS" ssh $SSH_OPTS \
-        -o ServerAliveInterval=15 \
-        "$STOCK_USER@$IMATE_IP" \
-        "sudo tar cf - \
-            -C / \
-            bin etc home lib media mnt opt root sbin srv usr var" 2>/dev/null | \
-        pv -s "$USED_BYTES" -eta -rate | \
-        gzip > "$STOCK_BACKUP"
-
-    LOCAL_SIZE=$(du -h "$STOCK_BACKUP" | cut -f1)
-    echo "  Saved: $STOCK_BACKUP ($LOCAL_SIZE)"
-fi
-
-# ============================================================
-# Step 3: Preserve stock files
-# ============================================================
-
-echo ""
-echo "========================================"
-echo "  Step 3/5 — Preserve Stock Files"
+echo "  Step 2/4 — Preserve Stock Files"
 echo "========================================"
 echo ""
 echo "Saving kernel, modules, firmware, and hardware tools..."
@@ -309,12 +259,12 @@ ROOT_UUID=$(ssh_run "sudo blkid -s UUID -o value /dev/mmcblk2p1")
 echo "  Root UUID: $ROOT_UUID"
 
 # ============================================================
-# Step 4: Download rootfs
+# Step 3: Download rootfs
 # ============================================================
 
 echo ""
 echo "========================================"
-echo "  Step 4/5 — Download OpenAstro Linux"
+echo "  Step 3/4 — Download OpenAstro Linux"
 echo "========================================"
 echo ""
 
@@ -348,18 +298,18 @@ ssh_run "tar tzf /tmp/stock-preserve.tar.gz >/dev/null" || {
 echo "  OK."
 
 # ============================================================
-# Step 5: Replace OS
+# Step 4: Replace OS
 # ============================================================
 
 echo ""
 echo "========================================"
-echo "  Step 5/5 — Install OpenAstro Linux"
+echo "  Step 4/4 — Install OpenAstro Linux"
 echo "========================================"
 echo ""
 echo "This will erase the current OS and install Debian Trixie."
 echo "DO NOT power off the iMate during this process!"
 echo ""
-echo "If something goes wrong, restore with ./scripts/restore"
+echo "If something goes wrong, restore using iOptron's SD card recovery image."
 echo ""
 
 prompt_continue "Proceed with installation?"
@@ -452,5 +402,5 @@ echo "    gpio write 6 1    # DC2 on"
 echo "    gpio write 6 0    # DC2 off"
 echo ""
 echo "  To restore stock firmware:"
-echo "    ./scripts/restore"
+echo "    Use iOptron's SD card recovery image."
 echo ""

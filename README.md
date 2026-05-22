@@ -2,7 +2,7 @@
 
 <img src="https://www.openastro.net/wp-content/uploads/2026/04/OpenAstro_logo.png" alt="OpenAstro logo" width="420">
 
-Replace the stock OS on your iOptron iMate with **Debian 13 (Trixie)** while keeping full hardware support — WiFi, ethernet, DC power ports, GPIO, and USB. Restore to stock at any time with a single command.
+Replace the stock OS on your iOptron iMate with **Debian 13 (Trixie)** while keeping full hardware support — WiFi, ethernet, DC power ports, GPIO, and USB. Restore to stock at any time using iOptron's SD card recovery image.
 
 ## Supported Hardware
 
@@ -16,13 +16,13 @@ OpenAstro Linux uses the **stock iMate bootloader and kernel** — only the root
 
 - Stock boot chain is untouched (U-Boot, kernel, device tree)
 - All hardware works out of the box (same drivers as stock)
-- Restore to stock firmware at any time with `./scripts/restore`
+- Restore to stock firmware at any time using iOptron's SD card recovery image
 - No repartitioning — stock single-partition layout is preserved
 - No physical access required — everything happens over the network
 
 ## Install
 
-### 1. Setup and run instsaller
+### 1. Setup and run installer
 
 ```bash
 sudo apt install sshpass wget pv
@@ -34,13 +34,12 @@ cd aw-flashtool
 The installer handles everything automatically:
 
 1. **Connects** to your iMate via SSH using the stock credentials
-2. **Backs up** the stock rootfs to `images/` for future restore
-3. **Preserves** the stock kernel, modules, firmware, and hardware tools
-4. **Downloads** the OpenAstro Linux image from GitHub Releases (or uses a local copy)
-5. **Replaces** the root filesystem with Debian Trixie
-6. **Reboots** into OpenAstro Linux
+2. **Preserves** the stock kernel, modules, firmware, and hardware tools
+3. **Downloads** the OpenAstro Linux image from GitHub Releases (or uses a local copy)
+4. **Replaces** the root filesystem with Debian Trixie
+5. **Reboots** into OpenAstro Linux
 
-### 3. First Boot
+### 2. First Boot
 
 The iMate reboots automatically after installation. Wait about 60 seconds.
 
@@ -54,21 +53,28 @@ ssh astro@<imate-ip>
 | User | `astro` |
 | Password | `astro` |
 | SSH | Enabled |
-| WiFi | Configure via `nmcli` |
+| WiFi | Stock iOptron AP (SSID `iMate_…`, password `12345678`) |
 | DC Ports | Enabled at boot |
 
 **Change the default password immediately:** `passwd`
 
-### WiFi Configuration
+### WiFi
 
-Connect to an existing network:
+The iMate keeps broadcasting its stock iOptron WiFi access point after install — no configuration needed.
+
+| Setting | Value |
+|---------|-------|
+| SSID | `iMate_…` (stock iOptron AP) |
+| Password | `12345678` |
+
+If you'd rather connect the iMate to an existing network (station mode):
 
 ```bash
 nmcli dev wifi list
 nmcli dev wifi connect <SSID> password <pass>
 ```
 
-Create a hotspot:
+Or create your own hotspot with custom credentials:
 
 ```bash
 nmcli device wifi hotspot ssid astro password <pass>
@@ -86,33 +92,16 @@ Both DC1 and DC2 are enabled automatically at boot via `dc-power-ports.service`.
 
 ## Restore Stock Firmware
 
-To go back to the original iOptron firmware at any time:
+To go back to the original iOptron firmware, use iOptron's official SD card recovery image. Follow the instructions here:
 
-```bash
-./scripts/restore
-```
+- [Restore/Update iMate IMG File](https://www.ioptron.com/Articles.asp?ID=366)
 
-Or pass the IP directly:
-
-```bash
-./scripts/restore 192.168.1.x
-```
-
-The restore script mirrors the install process in reverse:
-
-1. **Connects** to the iMate running OpenAstro Linux
-2. **Uploads** the stock rootfs backup (created automatically during install)
-3. **Replaces** the root filesystem with the stock backup
-4. **Reboots** into stock firmware
-
-The boot chain is never modified — only the rootfs contents are swapped, just like the install. After restoring, connect to the iMate WiFi (password: `12345678`) and verify everything works.
+After restoring, connect to the iMate WiFi (password: `12345678`) and log in with the stock credentials.
 
 | Setting | Value |
 |---------|-------|
 | User | `imate` |
 | Password | `imate` |
-
-> **Note:** The stock rootfs backup (`images/imate-stock-rootfs.tar.gz`) is created automatically the first time you run `./scripts/install`. You must install at least once before you can restore.
 
 ## Build Your Own
 
@@ -122,7 +111,7 @@ If you'd prefer to build a custom rootfs instead of using the pre-built image:
 
 ```bash
 sudo apt install debootstrap qemu-user-static
-sudo scripts/build/rootfs-setup.sh
+sudo scripts/rootfs-setup.sh
 ```
 
 This runs debootstrap, configures users, networking, SSH, GPIO services, and packages the result into `images/astrolinux-trixie-h6.tar.gz`.
@@ -141,7 +130,7 @@ If you have a raw eMMC dump from iOptron (typically ~30 GB), you can shrink it t
 
 ```bash
 sudo apt install e2fsprogs parted
-sudo scripts/build/shrink-stock-image.sh /path/to/stock-image.dd
+sudo scripts/shrink-stock-image.sh /path/to/stock-image.dd
 ```
 
 This shrinks the ext4 filesystem to its minimum size, truncates the unused space, and compresses the result to `images/imate-stock-restore.img.gz` (~6.6 GB). The original image is not modified.
@@ -150,10 +139,9 @@ This shrinks the ext4 filesystem to its minimum size, truncates the unused space
 
 | Script | Description |
 |--------|-------------|
-| `scripts/install` | **Full installer** — connect, back up stock rootfs, preserve stock files, download/upload image, replace OS, reboot |
-| `scripts/restore` | **Stock restore** — connect, upload stock rootfs backup, replace OS, reboot |
-| `scripts/build/rootfs-setup.sh` | Build a Debian Trixie rootfs tarball for the iMate (requires root, debootstrap, qemu-user-static) |
-| `scripts/build/shrink-stock-image.sh` | Shrink iOptron's ~30 GB stock DD image to ~6.6 GB compressed |
+| `scripts/install` | **Full installer** — connect, preserve stock files, download/upload image, replace OS, reboot |
+| `scripts/rootfs-setup.sh` | Build a Debian Trixie rootfs tarball for the iMate (requires root, debootstrap, qemu-user-static) |
+| `scripts/shrink-stock-image.sh` | Shrink iOptron's ~30 GB stock DD image to ~6.6 GB compressed |
 
 ## Hardware Documentation
 

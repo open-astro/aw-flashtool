@@ -5,10 +5,10 @@ set -euo pipefail
 # The stock image is a full eMMC dump with mostly empty space. This script
 # shrinks the ext4 filesystem and partition, then compresses the result.
 #
-# Usage: sudo scripts/build/shrink-stock-image.sh <stock-image.img>
+# Usage: sudo scripts/shrink-stock-image.sh <stock-image.img>
 # Output: images/imate-stock-restore.img.gz (~6.6 GB compressed)
 
-REPODIR="$(cd "$(dirname "$0")/../.." && pwd)"
+REPODIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT="$REPODIR/images/imate-stock-restore.img.gz"
 
 if [ "$(id -u)" -ne 0 ]; then

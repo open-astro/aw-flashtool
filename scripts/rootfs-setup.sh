@@ -3,9 +3,9 @@ set -euo pipefail
 
 # Build a Debian 13 (Trixie) arm64 rootfs tarball for the iOptron iMate.
 # Requires: debootstrap, qemu-user-static
-# Usage: sudo scripts/build/rootfs-setup.sh
+# Usage: sudo scripts/rootfs-setup.sh
 
-REPODIR="$(cd "$(dirname "$0")/../.." && pwd)"
+REPODIR="$(cd "$(dirname "$0")/.." && pwd)"
 WORKDIR="$(mktemp -d)"
 ROOTFS="$WORKDIR/rootfs"
 OUTPUT="$REPODIR/images/astrolinux-trixie-h6.tar.gz"
